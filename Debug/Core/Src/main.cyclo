@@ -1,0 +1,10 @@
+../Drivers/CMSIS/Include/core_cm4.h:2064:26:ITM_SendChar	4
+../Core/Src/main.c:18:8:i2c_read	3
+../Core/Src/main.c:35:8:i2c_write	2
+../Core/Src/main.c:51:6:user_delay_us	1
+../Core/Src/main.c:66:5:main	2
+../Core/Src/main.c:141:6:SystemClock_Config	3
+../Core/Src/main.c:183:13:MX_I2C1_Init	2
+../Core/Src/main.c:217:13:MX_GPIO_Init	1
+../Core/Src/main.c:238:6:Error_Handler	1
+../Core/Src/main.c:249:5:_write	2

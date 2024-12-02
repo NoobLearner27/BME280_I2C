@@ -1,0 +1,10 @@
+../Drivers/CMSIS/Include/core_cm4.h:2064:26:ITM_SendChar	16	static,ignoring_inline_asm
+../Core/Src/main.c:18:8:i2c_read	40	static
+../Core/Src/main.c:35:8:i2c_write	72	dynamic
+../Core/Src/main.c:51:6:user_delay_us	16	static
+../Core/Src/main.c:66:5:main	112	static
+../Core/Src/main.c:141:6:SystemClock_Config	88	static
+../Core/Src/main.c:183:13:MX_I2C1_Init	8	static
+../Core/Src/main.c:217:13:MX_GPIO_Init	16	static
+../Core/Src/main.c:238:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:249:5:_write	32	static
