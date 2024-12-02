@@ -1,42 +1,45 @@
-
 #include "main.h"
 #include"bme280.h"
 #include<stdint.h>
 #include<stdio.h>
 #include <string.h>
 
+// PB6 -> SCL
+// PB7 -> SDA
+// uint16_t dev_addr = 0x76; dev_address LEFT SHIFTED by 1 = 11101100
+// 11101101 (ED) for read operation
+// chip id = 0xD0 , 11010000
+// SLAVE ADDRESS = 1110110 (0x76) when SDO is connected to GND
+//                 1110111 (0x77) when SDO is conected to Vdd
+
 I2C_HandleTypeDef hi2c1;
 
-
-// uint16_t dev_addr = 0x76; 11101100 LEFT SHIFTED
-// 11101101 (ED) for read
-// chi id = 0xD0 , 11010000
 
 int8_t i2c_read(uint8_t reg_addr, uint8_t *data, uint32_t len, void *intf_ptr); // to read the data from sensor
 int8_t i2c_write(uint8_t reg_addr,  uint8_t *reg_data, uint32_t len, void *intf_ptr);  // to write data to sensor
 
-int8_t i2c_read(uint8_t reg_addr, uint8_t *data, uint32_t len, void *intf_ptr) {
-    uint16_t dev_addr = (uint16_t)(uintptr_t)intf_ptr;
-  //  uint16_t dev_addr1 = 0xED;
-   // reg_addr |= 0x60;
-    // Send register address
-    if (HAL_I2C_Master_Transmit(&hi2c1, dev_addr << 1, &reg_addr, 1, HAL_MAX_DELAY) != HAL_OK) {
+int8_t i2c_read(uint8_t reg_addr, uint8_t *data, uint32_t len, void *intf_ptr)
+{
+    uint16_t dev_addr = (uint16_t)(uintptr_t)intf_ptr;   // attaching dev_addr to pointer for communication with bme280
+
+    //  Send register address
+    if (HAL_I2C_Master_Transmit(&hi2c1, dev_addr << 1, &reg_addr, 1, HAL_MAX_DELAY) != HAL_OK) {    // writing 0 on the 8th bit of dev_addr for read operation
         return -1; // Error in transmitting register address
     }
-
-    // Read data
-    if (HAL_I2C_Master_Receive(&hi2c1, dev_addr << 1, data, len, HAL_MAX_DELAY) != HAL_OK) {
-        return -1; // Error in receiving data
+    	// Read data
+    	if (HAL_I2C_Master_Receive(&hi2c1, dev_addr << 1, data, len, HAL_MAX_DELAY) != HAL_OK) {
+    		return -1; // Error in receiving data
     }
     return 0; // Success
 }
 
 
-int8_t i2c_write(uint8_t reg_addr, uint8_t *data, uint32_t len, void *intf_ptr) {
+int8_t i2c_write(uint8_t reg_addr, uint8_t *data, uint32_t len, void *intf_ptr)
+{
     uint16_t dev_addr = (uint16_t)(uintptr_t)intf_ptr;
     uint8_t buffer[len + 1];
 
-    // Prepare data with register address at the start
+    // Preparing data with register address at the start
     buffer[0] = reg_addr;
     memcpy(&buffer[1], data, len);
 
@@ -52,12 +55,6 @@ void user_delay_us(uint32_t period, void *intf_ptr) {
 	HAL_Delay(period / 1000);  //  for millisecond delay
 }
 
-// SLAVE ADDRESS = 1110110 (0x76) when SDO is connected to GND
-//                 1110111 (0x77) when SDO is conected to Vdd
-
-
-
-
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -65,73 +62,55 @@ static void MX_I2C1_Init(void);
 
 int main(void)
 {
-
-
   HAL_Init();
-
-
   SystemClock_Config();
   MX_GPIO_Init();
   MX_I2C1_Init();
 
-
- /* printf("Scanning I2C bus...\n");
-
-   for (uint16_t i = 0; i < 128; i++) {
-       if (HAL_I2C_IsDeviceReady(&hi2c1, (i << 1), 1, HAL_MAX_DELAY) == HAL_OK) {
-           printf("Device found at address: 0x%X\n", i);
-       }
-   }
-
-   while (1) {
-   }
-}                     */
-
-  struct bme280_dev dev;
+  	 struct bme280_dev dev;
      struct bme280_settings settings;
      struct bme280_data comp_data;
 
      int8_t rslt;
 
-     // Initialize the sensor
+    // Initialize the sensor
 
-     	dev.intf_ptr = (void *)(uintptr_t)BME280_I2C_ADDR_PRIM;
-     	dev.intf = BME280_I2C_INTF;
-     	dev.read = (bme280_read_fptr_t)i2c_read;
-     	dev.write = (bme280_write_fptr_t)i2c_write;
-     	dev.delay_us = user_delay_us;
+	dev.intf_ptr = (void *)(uintptr_t)BME280_I2C_ADDR_PRIM;
+	dev.intf = BME280_I2C_INTF;
+	dev.read = (bme280_read_fptr_t)i2c_read;
+	dev.write = (bme280_write_fptr_t)i2c_write;
+	dev.delay_us = user_delay_us;
 
-     	rslt = bme280_init(&dev);
-     	// Check if the initialization was successful
-     		if (rslt == BME280_OK) {
-     			printf("BME280 initialization successful!\n");
-     		} else {
-     			printf("BME280 initialization failed with code: %d\n", rslt);
-     			return 0;
-     		}
+	rslt = bme280_init(&dev);
+	// Check if the initialization was successful
+	if (rslt == BME280_OK) {
+		printf("BME280 initialization successful!\n");
+	} else {
+		printf("BME280 initialization failed with code: %d\n", rslt);
+	return 0;
+	}
 
-     		// settings configuration for BME280
-     			uint8_t settings_sel;
-     			settings.osr_h = BME280_OVERSAMPLING_16X;
-     			settings.osr_p = BME280_OVERSAMPLING_16X;
-     			settings.osr_p = BME280_OVERSAMPLING_16X;
-     			settings.filter = BME280_FILTER_COEFF_16;
-     			settings.standby_time = BME280_STANDBY_TIME_1000_MS;
+	// settings configuration for BME280
+	uint8_t settings_sel;
+	settings.osr_h = BME280_OVERSAMPLING_16X;
+	settings.osr_p = BME280_OVERSAMPLING_16X;
+	settings.osr_p = BME280_OVERSAMPLING_16X;
+	settings.filter = BME280_FILTER_COEFF_16;
+	settings.standby_time = BME280_STANDBY_TIME_1000_MS;
 
-     		settings_sel = BME280_SEL_OSR_PRESS | BME280_SEL_OSR_TEMP| BME280_SEL_OSR_HUM | BME280_SEL_FILTER | BME280_SEL_STANDBY;
-   		bme280_set_sensor_settings(settings_sel, &settings, &dev); // applying setting configurations to sensor
-   		bme280_set_sensor_mode(BME280_POWERMODE_NORMAL, &dev); // applying sensor mode
-    while (1)
+	settings_sel = BME280_SEL_OSR_PRESS | BME280_SEL_OSR_TEMP| BME280_SEL_OSR_HUM | BME280_SEL_FILTER | BME280_SEL_STANDBY;
+	bme280_set_sensor_settings(settings_sel, &settings, &dev); // applying setting configurations to sensor
+	bme280_set_sensor_mode(BME280_POWERMODE_NORMAL, &dev); // applying sensor mode
+
+	while (1)
     {
   	  rslt = bme280_get_sensor_data(BME280_ALL, &comp_data, &dev); // reading and compensating temperature,pressure and humidity values from the sensor
-  		  		printf("Temperature: %0.2f °C\n", comp_data.temperature);
-  		  		printf("Pressure: %0.2f hPa\n", comp_data.pressure);
-  		  		printf("Humidity: %0.2f %%\n", comp_data.humidity);
-  		  		HAL_Delay(1000);
-
+	  printf("Temperature: %0.2f °C\n", comp_data.temperature);
+	  printf("Pressure: %0.2f hPa\n", comp_data.pressure);
+	  printf("Humidity: %0.2f %%\n", comp_data.humidity);
+	  HAL_Delay(1000);
     }
-
-  }
+}
 
 
 /**
